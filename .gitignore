@@ -1,0 +1,29 @@
+#java specific
+*.class
+
+#netbeans ignore personal stuff 
+nbproject/private/
+private.properties
+private.xml
+genfiles.properties
+build-impl.xml
+
+# builds
+build/
+dist/
+cache/
+
+## generic files to ignore
+.svn
+Thumbs.db
+*~
+*.lock
+*.DS_Store
+*.swp
+
+# XCode
+build/
+*.pbxuser
+*.perspective
+*.perspectivev3
+xcuserdata
