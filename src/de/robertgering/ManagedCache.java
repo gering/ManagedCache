@@ -172,10 +172,13 @@ public class ManagedCache<K extends Object, V extends Object> {
 	 */
 	public long getAverageRemainingTTL() {
 		cleanup();
-		long total = 0;
-		for (CacheEntry entry : cache.values()) {
-			total += entry.getTimeToLife();
+		synchronized (cache) {
+			if (cache.isEmpty()) return 0;
+			long total = 0;
+			for (CacheEntry entry : cache.values()) {
+				total += entry.getTimeToLife();
+			}
+			return total / cache.size();
 		}
-		return total / cache.size();
 	}
 }
