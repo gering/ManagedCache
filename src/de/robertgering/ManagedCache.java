@@ -16,12 +16,16 @@ import java.util.Set;
 public class ManagedCache<K extends Object, V extends Object> {
 
     private final Map<K, CacheEntry<K, V>> cache = new HashMap<K, CacheEntry<K, V>>();
-    private long maxItems;
+    private long maxEntries;
     private long defaultTTL;
     private final CleanupStrategy cleanupStrategy;
 
-    public ManagedCache(long maxItems, long defaultTTL, CleanupStrategy cleanupStrategy) {
-        this.maxItems = maxItems;
+	// statistics
+	private long hitCount;	// hitted cache
+	private long missCount;	// missed cache
+
+    public ManagedCache(long maxEntries, long defaultTTL, CleanupStrategy cleanupStrategy) {
+        this.maxEntries = maxEntries;
         this.defaultTTL = defaultTTL;
         this.cleanupStrategy = cleanupStrategy;
     }
@@ -30,8 +34,8 @@ public class ManagedCache<K extends Object, V extends Object> {
         return defaultTTL;
     }
 
-    public long getMaxItems() {
-        return maxItems;
+    public long getMaxEntries() {
+        return maxEntries;
     }
 
     public int size() {
@@ -46,7 +50,13 @@ public class ManagedCache<K extends Object, V extends Object> {
 
     public boolean containsKey(K key) {
         cleanup();
-        return cache.containsKey(key);
+        boolean result = cache.containsKey(key);
+		if (result) {
+			hitCount++;
+		} else {
+			missCount++;
+		}
+		return result;
     }
 
     public boolean containsValue(V value) {
@@ -61,11 +71,14 @@ public class ManagedCache<K extends Object, V extends Object> {
     public V get(K key) {
         CacheEntry<K, V> entry = cache.get(key);
         if (entry == null) {
+			missCount++;
             return null;
         }
         if (entry.isValide()) {
+			hitCount++;
             return entry.getValue();
         } else {
+			missCount++;
             cache.remove(key);
             return null;
         }
@@ -73,7 +86,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 
     public void put(K key, V value, long ttl) {
         cache.put(key, new CacheEntry<K, V>(key, value, ttl));
-        if (cache.size() > maxItems) {
+        if (cache.size() > maxEntries) {
             cleanup();
         }
     }
@@ -110,13 +123,59 @@ public class ManagedCache<K extends Object, V extends Object> {
             }
             remove(cleanKeys);
 
-            if (cache.size() > maxItems) {
+            if (cache.size() > maxEntries) {
                 List<CacheEntry<K, V>> entries = new LinkedList(cache.values());
                 Collections.sort(entries, CacheEntry.getComparator(cleanupStrategy));
-                for (int i = 0; cache.size() > maxItems; i++) {
+                for (int i = 0; cache.size() > maxEntries; i++) {
                     cache.remove(entries.get(i).getKey());
                 }
             }
         }
     }
+
+	/**
+	 * resets the hit and miss counter for this cache
+	 */
+	public void resetStatistics() {
+		hitCount = 0;
+		missCount = 0;
+	}
+
+	/**
+	 * The hit count gets incremented everytime <code>get()</code> or
+	 * <code>containsKey()</code> returns an entry or true.
+	 * @return the number of successfull requests to the cache
+	 */
+	public long getHitCount() {
+		return hitCount;
+	}
+
+	/**
+	 * The miss count gets incremented everytime <code>get()</code> or
+	 * <code>containsKey()</code> returns null or false.
+	 * @return the number of failed requests to the cache
+	 */
+	public long getMissCount() {
+		return missCount;
+	}
+
+	/**
+	 * @return the total number of requests made to this cache
+	 */
+	public long getRequestCount() {
+		return hitCount + missCount;
+	}
+
+	/**
+	 * Looks over evry valid cached entry and averages the remaining ttl
+	 * @return average remaining time to life in ms
+	 */
+	public long getAverageRemainingTTL() {
+		cleanup();
+		long total = 0;
+		for (CacheEntry entry : cache.values()) {
+			total += entry.getTimeToLife();
+		}
+		return total / cache.size();
+	}
 }
