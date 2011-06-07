@@ -61,7 +61,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 
     public boolean containsValue(V value) {
         for (CacheEntry<K, V> cacheEntry : cache.values()) {
-            if (cacheEntry.getValue().equals(value) && cacheEntry.isValide()) {
+            if (cacheEntry.getValue().equals(value) && cacheEntry.isValid()) {
                 return true;
             }
         }
@@ -74,7 +74,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 			missCount++;
             return null;
         }
-        if (entry.isValide()) {
+        if (entry.isValid()) {
 			hitCount++;
             return entry.getValue();
         } else {
@@ -117,7 +117,7 @@ public class ManagedCache<K extends Object, V extends Object> {
         synchronized (cache) {
             Set<K> cleanKeys = new HashSet<K>();
             for (K key : cache.keySet()) {
-                if (!cache.get(key).isValide()) {
+                if (!cache.get(key).isValid()) {
                     cleanKeys.add(key);
                 }
             }
