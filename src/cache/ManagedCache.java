@@ -15,6 +15,11 @@ import java.util.Set;
  */
 public class ManagedCache<K extends Object, V extends Object> {
 
+    public static final long SECOND = 1000;
+    public static final long MINUTE = 60*SECOND;
+    public static final long HOUR = 60*MINUTE;
+    public static final long DAY = 24*HOUR;
+    
     private final Map<K, CacheEntry<K, V>> cache = new HashMap<K, CacheEntry<K, V>>();
     private long maxEntries;
     private long defaultTTL;
