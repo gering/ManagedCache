@@ -1,5 +1,7 @@
 package de.robertgering;
 
+import cache.CleanupStrategy;
+import cache.ManagedCache;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
