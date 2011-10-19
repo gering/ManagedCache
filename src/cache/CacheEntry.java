@@ -61,7 +61,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
         return accessCount;
     }
 
-    public boolean isValide() {
+    public boolean isValid() {
         return rest() > 0;
     }
 
