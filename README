@@ -1,6 +1,0 @@
-The ManagedCache class supports different cleanup strategies to stay the maximum cache size.
-
-CleanupStrategy: 
-CLEANUP_BY_LAST_ACCESS, CLEANUP_BY_LAST_ADDED, CLEANUP_BY_REMAINING_TTL, CLEANUP_BY_ACCESS_COUNT
-
-
