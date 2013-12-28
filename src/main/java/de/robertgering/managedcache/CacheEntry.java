@@ -118,4 +118,9 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
         hash = 97 * hash + (this.value != null ? this.value.hashCode() : 0);
         return hash;
     }
+
+	@Override
+	public String toString() {
+		return "<" + key + ":" + value + ">";
+	}
 }

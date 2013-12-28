@@ -81,22 +81,21 @@ public class CleanupTest {
 
         for (int i = 0; i < 5; i++) {
             managedCache.put("key" + i, "value" + i);
-            Thread.sleep(1);
         }
 
         managedCache.get("key0");
         managedCache.get("key1");
         managedCache.get("key2");
         managedCache.get("key4");
-        managedCache.get("key5");
+        //managedCache.get("key5");
 
-        managedCache.put("key5", "value");
+        managedCache.put("key5", "value5");
 
         assertTrue(managedCache.containsKey("key0"));
         assertTrue(managedCache.containsKey("key1"));
         assertTrue(managedCache.containsKey("key2"));
-        assertFalse(managedCache.containsKey("key3"));
         assertTrue(managedCache.containsKey("key4"));
         assertTrue(managedCache.containsKey("key5"));
+        assertFalse(managedCache.containsKey("key3"));
     }
 }
