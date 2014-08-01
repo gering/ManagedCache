@@ -19,11 +19,11 @@ public class ManagedCache<K extends Object, V extends Object> {
 	private final long maxEntries;
 	private final long defaultTTL;
 	private final CleanupStrategy cleanupStrategy;
-
+	
 	// statistics
 	private long hitCount;	// hitted cache
 	private long missCount;	// missed cache
-
+	
 	public ManagedCache(long maxEntries, long defaultTTL, CleanupStrategy cleanupStrategy) {
 		this.maxEntries = maxEntries;
 		this.defaultTTL = defaultTTL;
@@ -85,6 +85,12 @@ public class ManagedCache<K extends Object, V extends Object> {
 	}
 
 	public V put(K key, V value, long ttl) {
+		if (key == null) {
+			return null;
+		}
+		if (value == null) {
+			return remove(key);
+		}
 		if (cache.size() >= maxEntries) {
 			cleanup(1);
 		}
