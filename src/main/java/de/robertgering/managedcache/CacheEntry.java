@@ -6,6 +6,8 @@ import java.util.Map.Entry;
 /**
  *
  * @author robert gering
+ * @param <K> key class
+ * @param <V> value class
  */
 public class CacheEntry<K extends Object, V extends Object> implements Entry<K, V> {
 
@@ -100,7 +102,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
                     }
                 };
             default:
-                return null;
+				throw new IllegalStateException("unsupported cleanup strategy: " + strategy);
         }
     }
 

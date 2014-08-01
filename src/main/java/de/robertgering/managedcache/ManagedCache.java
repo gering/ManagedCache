@@ -15,7 +15,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 	public static final long HOUR = 60 * MINUTE;
 	public static final long DAY = 24 * HOUR;
 
-	private final Map<K, CacheEntry<K, V>> cache = new HashMap<K, CacheEntry<K, V>>();
+	private final Map<K, CacheEntry<K, V>> cache = Collections.synchronizedMap(new HashMap<K, CacheEntry<K, V>>());
 	private final long maxEntries;
 	private final long defaultTTL;
 	private final CleanupStrategy cleanupStrategy;
@@ -84,19 +84,21 @@ public class ManagedCache<K extends Object, V extends Object> {
 		}
 	}
 
-	public void put(K key, V value, long ttl) {
+	public V put(K key, V value, long ttl) {
 		if (cache.size() >= maxEntries) {
 			cleanup(1);
 		}
-		cache.put(key, new CacheEntry<K, V>(key, value, ttl));
+		CacheEntry<K, V> oldValue = cache.put(key, new CacheEntry<K, V>(key, value, ttl));
+		return oldValue != null ? oldValue.getValue() : null;
 	}
 
-	public void put(K key, V value) {
-		put(key, value, defaultTTL);
+	public V put(K key, V value) {
+		return put(key, value, defaultTTL);
 	}
 
 	public V remove(K key) {
-		return cache.remove(key).getValue();
+		CacheEntry<K ,V> entry = cache.remove(key);
+		return entry != null ? entry.getValue() : null;
 	}
 
 	public void remove(Collection<K> keys) {
@@ -119,20 +121,26 @@ public class ManagedCache<K extends Object, V extends Object> {
 	
 	private void cleanup(int count) {
 		synchronized (cache) {
+			// cleanup invalid items
 			Set<K> cleanKeys = new HashSet<K>();
-			for (K key : cache.keySet()) {
-				if (!cache.get(key).isValid()) {
+			for (K key : keySet()) {
+				CacheEntry<K, V> entry = cache.get(key);
+				if (entry != null && !entry.isValid()) {
 					cleanKeys.add(key);
 				}
 			}
 			remove(cleanKeys);
 			count -= cleanKeys.size();
 
+			// must delete vaild items?
 			if (count > 0) {
 				List<CacheEntry<K, V>> entries = new LinkedList(cache.values());
 				Collections.sort(entries, CacheEntry.getComparator(cleanupStrategy));
 				for (int i = 0; i < count; i++) {
-					cache.remove(entries.get(i).getKey());
+					CacheEntry<K, V> entry = entries.get(i);
+					if (entry != null) {
+						cache.remove(entry.getKey());
+					}
 				}
 			}
 		}

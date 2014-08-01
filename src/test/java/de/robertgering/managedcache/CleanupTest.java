@@ -1,7 +1,5 @@
 package de.robertgering.managedcache;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -13,7 +11,7 @@ public class CleanupTest {
 
     @Test
     public void cleanupByLastAddedTest() throws InterruptedException {
-        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, 100000, CleanupStrategy.CLEANUP_BY_LAST_ADDED);
+        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, ManagedCache.MINUTE, CleanupStrategy.CLEANUP_BY_LAST_ADDED);
 
         for (int i = 0; i < 6; i++) {
             managedCache.put("key" + i, "value" + i);
@@ -35,7 +33,7 @@ public class CleanupTest {
 
     @Test
     public void cleanupByLastAccessTest() throws InterruptedException {
-        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, 100000, CleanupStrategy.CLEANUP_BY_LAST_ACCESS);
+        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, ManagedCache.MINUTE, CleanupStrategy.CLEANUP_BY_LAST_ACCESS);
 
         for (int i = 0; i < 5; i++) {
             managedCache.put("key" + i, "value" + i);
@@ -67,6 +65,8 @@ public class CleanupTest {
         managedCache.put("key4", "value");
         managedCache.put("key5", "value");
 
+		assertEquals(5, managedCache.size());
+		
         assertTrue(managedCache.containsKey("key0"));
         assertTrue(managedCache.containsKey("key1"));
         assertFalse(managedCache.containsKey("key2"));
@@ -77,7 +77,7 @@ public class CleanupTest {
 
     @Test
     public void cleanupByAccessCountTest() throws InterruptedException {
-        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, 100000, CleanupStrategy.CLEANUP_BY_ACCESS_COUNT);
+        final ManagedCache<String, String> managedCache = new ManagedCache<String, String>(5, ManagedCache.MINUTE, CleanupStrategy.CLEANUP_BY_ACCESS_COUNT);
 
         for (int i = 0; i < 5; i++) {
             managedCache.put("key" + i, "value" + i);
