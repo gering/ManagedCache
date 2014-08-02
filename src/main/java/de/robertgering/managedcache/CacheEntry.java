@@ -1,18 +1,16 @@
 package de.robertgering.managedcache;
 
 import java.util.Comparator;
-import java.util.Map.Entry;
 
 /**
  *
- * @author robert gering
- * @param <K> key class
+ * @author Robert Gering
  * @param <V> value class
  */
-public class CacheEntry<K extends Object, V extends Object> implements Entry<K, V> {
+public class CacheEntry<V extends Object> {
 
-    private final K key;
-    private V value;
+    private final String key;
+    private final V value;
     private final long timeToLife;     // in ms
     private final long added;
     private long lastAccess;
@@ -24,7 +22,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
      * @param value
      * @param timeToLife time to live in ms
      */
-    CacheEntry(K key, V value, long timeToLife) {
+    CacheEntry(String key, V value, long timeToLife) {
         this.key = key;
         this.value = value;
         this.timeToLife = timeToLife;
@@ -32,7 +30,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
         this.lastAccess = this.added;
     }
 
-    public K getKey() {
+    public String getKey() {
         return key;
     }
 
@@ -40,11 +38,6 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
         lastAccess = System.currentTimeMillis();
         accessCount++;
         return value;
-    }
-
-    public V setValue(V value) {
-        this.value = value;
-        return this.value;
     }
 
     public long getAdded() {
@@ -109,7 +102,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof CacheEntry) {
-            return getValue().equals(((CacheEntry)obj).getValue());
+            return getKey().equals(((CacheEntry)obj).getKey());
         }
         return false;
     }
@@ -117,7 +110,7 @@ public class CacheEntry<K extends Object, V extends Object> implements Entry<K, 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 97 * hash + (this.value != null ? this.value.hashCode() : 0);
+        hash = 97 * hash + (this.key != null ? this.key.hashCode() : 0);
         return hash;
     }
 

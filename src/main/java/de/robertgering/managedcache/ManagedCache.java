@@ -1,21 +1,22 @@
 package de.robertgering.managedcache;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
- *
- * @author robert gering
- * @param <K> the key
+ * ManagedCache implements the Map<String, V> Interface
+ * this cache is thread safe
+ * @author Robert Gering
  * @param <V> the value
  */
-public class ManagedCache<K extends Object, V extends Object> {
-
+public class ManagedCache<V extends Object> {
+	
 	public static final long SECOND = 1000;
 	public static final long MINUTE = 60 * SECOND;
 	public static final long HOUR = 60 * MINUTE;
 	public static final long DAY = 24 * HOUR;
 
-	private final Map<K, CacheEntry<K, V>> cache = Collections.synchronizedMap(new HashMap<K, CacheEntry<K, V>>());
+	private final Map<String, CacheEntry<V>> cache = new HashMap<String, CacheEntry<V>>();
 	private final long maxEntries;
 	private final long defaultTTL;
 	private final CleanupStrategy cleanupStrategy;
@@ -38,38 +39,36 @@ public class ManagedCache<K extends Object, V extends Object> {
 		return maxEntries;
 	}
 
-	public int size() {
+	public synchronized int size() {
 		cleanup();
 		return cache.size();
 	}
 
-	public boolean isEmpty() {
+	public synchronized boolean isEmpty() {
 		cleanup();
 		return cache.isEmpty();
 	}
 
-	public boolean containsKey(K key) {
+	public synchronized boolean containsKey(String key) {
 		cleanup();
 		boolean result = cache.containsKey(key);
-		if (result) {
-			hitCount++;
-		} else {
+		if (!result) {
 			missCount++;
 		}
 		return result;
 	}
 
-	public boolean containsValue(V value) {
-		for (CacheEntry<K, V> cacheEntry : cache.values()) {
-			if (cacheEntry.getValue().equals(value) && cacheEntry.isValid()) {
+	public synchronized boolean containsValue(V value) {
+		for (CacheEntry<V> entry : entrySet()) {
+			if (entry.isValid() && entry.getValue().equals(value)) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-	public V get(K key) {
-		CacheEntry<K, V> entry = cache.get(key);
+	public synchronized V get(String key) {
+		CacheEntry<V> entry = cache.get(key);
 		if (entry == null) {
 			missCount++;
 			return null;
@@ -79,12 +78,12 @@ public class ManagedCache<K extends Object, V extends Object> {
 			return entry.getValue();
 		} else {
 			missCount++;
-			cache.remove(key);
+			cache.remove((String)key);
 			return null;
 		}
 	}
 
-	public V put(K key, V value, long ttl) {
+	private synchronized V put(String key, V value, long ttl, boolean cleanup) {
 		if (key == null) {
 			return null;
 		}
@@ -94,60 +93,84 @@ public class ManagedCache<K extends Object, V extends Object> {
 		if (cache.size() >= maxEntries) {
 			cleanup(1);
 		}
-		CacheEntry<K, V> oldValue = cache.put(key, new CacheEntry<K, V>(key, value, ttl));
+		CacheEntry<V> oldValue = cache.put(key, new CacheEntry<V>(key, value, ttl));
 		return oldValue != null ? oldValue.getValue() : null;
 	}
-
-	public V put(K key, V value) {
-		return put(key, value, defaultTTL);
+	
+	public synchronized V put(String key, V value, long ttl) {
+		return put(key, value, ttl, true);
 	}
 
-	public V remove(K key) {
-		CacheEntry<K ,V> entry = cache.remove(key);
+	public synchronized V put(String key, V value) {
+		return put(key, value, defaultTTL, true);
+	}
+
+	public void putAll(Map<? extends String, ? extends V> m) {
+		for (Entry<? extends String, ? extends V> entry : m.entrySet()) {
+			put(entry.getKey(), entry.getValue(), defaultTTL, false);
+		}
+		cleanup();
+	}
+	
+	public synchronized V remove(String key) {
+		CacheEntry<V> entry = cache.remove(key);
 		return entry != null ? entry.getValue() : null;
 	}
 
-	public void remove(Collection<K> keys) {
-		for (K key : keys) {
+	public synchronized void removeAll(Collection<String> keys) {
+		for (String key : keys) {
 			cache.remove(key);
 		}
 	}
 
-	public void clear() {
+	public synchronized void clear() {
 		cache.clear();
 	}
 
-	public Set<K> keySet() {
+	public synchronized Set<String> keySet() {
 		return cache.keySet();
 	}
+	
+	public synchronized Set<CacheEntry<V>> entrySet() {
+		cleanup();
+		return new HashSet<CacheEntry<V>>(cache.values());
+	}
 
-	public void cleanup() {
+	public Collection<V> values() {
+		List<V> values = new ArrayList<V>(size());
+		for (CacheEntry<V> entry : entrySet()) {
+			values.add(entry.getValue());
+		}
+		return values;
+	}
+	
+	public synchronized void cleanup() {
 		cleanup((int) (cache.size() - maxEntries));
 	}
 	
-	private void cleanup(int count) {
-		synchronized (cache) {
-			// cleanup invalid items
-			Set<K> cleanKeys = new HashSet<K>();
-			for (K key : keySet()) {
-				CacheEntry<K, V> entry = cache.get(key);
-				if (entry != null && !entry.isValid()) {
-					cleanKeys.add(key);
+	private synchronized void cleanup(int count) {
+		
+		if (count > cache.size()) count = cache.size();
+		
+		// cleanup invalid items
+		{
+			List<CacheEntry<V>> entries = new ArrayList(cache.values());
+			for (CacheEntry<V> cacheEntry : entries) {
+				if (!cacheEntry.isValid()) {
+					cache.remove(cacheEntry.getKey());
+					count--;
 				}
 			}
-			remove(cleanKeys);
-			count -= cleanKeys.size();
+		}
 
-			// must delete vaild items?
-			if (count > 0) {
-				List<CacheEntry<K, V>> entries = new LinkedList(cache.values());
-				Collections.sort(entries, CacheEntry.getComparator(cleanupStrategy));
-				for (int i = 0; i < count; i++) {
-					CacheEntry<K, V> entry = entries.get(i);
-					if (entry != null) {
-						cache.remove(entry.getKey());
-					}
-				}
+		// must delete vaild items?
+		if (count > 0) {
+			List<CacheEntry<V>> entries = new ArrayList(cache.values());
+			Collections.sort(entries, CacheEntry.getComparator(cleanupStrategy));
+
+			for (int i = 0; i < count; i++) {
+				CacheEntry<V> entry = entries.get(i);
+				cache.remove(entry.getKey());
 			}
 		}
 	}
@@ -155,7 +178,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 	/**
 	 * resets the hit and miss counter for this cache
 	 */
-	public void resetStatistics() {
+	public synchronized void resetStatistics() {
 		hitCount = 0;
 		missCount = 0;
 	}
@@ -166,7 +189,7 @@ public class ManagedCache<K extends Object, V extends Object> {
 	 *
 	 * @return the number of successfull requests to the cache
 	 */
-	public long getHitCount() {
+	public synchronized long getHitCount() {
 		return hitCount;
 	}
 
@@ -176,14 +199,14 @@ public class ManagedCache<K extends Object, V extends Object> {
 	 *
 	 * @return the number of failed requests to the cache
 	 */
-	public long getMissCount() {
+	public synchronized long getMissCount() {
 		return missCount;
 	}
 
 	/**
 	 * @return the total number of requests made to this cache
 	 */
-	public long getRequestCount() {
+	public synchronized long getRequestCount() {
 		return hitCount + missCount;
 	}
 
@@ -192,17 +215,15 @@ public class ManagedCache<K extends Object, V extends Object> {
 	 *
 	 * @return average remaining time to life in ms
 	 */
-	public long getAverageRemainingTTL() {
+	public synchronized long getAverageRemainingTTL() {
 		cleanup();
-		synchronized (cache) {
-			if (cache.isEmpty()) {
-				return 0;
-			}
-			long total = 0;
-			for (CacheEntry entry : cache.values()) {
-				total += entry.getTimeToLife();
-			}
-			return total / cache.size();
+		if (cache.isEmpty()) {
+			return 0;
 		}
+		long total = 0;
+		for (CacheEntry entry : cache.values()) {
+			total += entry.getTimeToLife();
+		}
+		return total / cache.size();
 	}
 }
