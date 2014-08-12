@@ -51,7 +51,7 @@ public class ManagedCache<V extends Object> {
 
 	public synchronized boolean containsKey(String key) {
 		cleanup();
-		boolean result = cache.containsKey(key);
+		boolean result = key != null && cache.containsKey(key);
 		if (!result) {
 			missCount++;
 		}
@@ -68,6 +68,10 @@ public class ManagedCache<V extends Object> {
 	}
 
 	public synchronized V get(String key) {
+		if (key == null) {
+			missCount++;
+			return null;
+		}
 		CacheEntry<V> entry = cache.get(key);
 		if (entry == null) {
 			missCount++;
