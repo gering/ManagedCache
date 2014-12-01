@@ -67,6 +67,10 @@ public class ManagedCache<V extends Object> {
 		return false;
 	}
 
+	public synchronized V get(Object key) {
+		return get(key.toString());
+	}
+	
 	public synchronized V get(String key) {
 		if (key == null) {
 			missCount++;
@@ -101,6 +105,14 @@ public class ManagedCache<V extends Object> {
 		return oldValue != null ? oldValue.getValue() : null;
 	}
 	
+	public V put(Object key, V value, long ttl) {
+		return put(key.toString(), value, ttl);
+	}
+
+	public V put(Object key, V value) {
+		return put(key.toString(), value);
+	}
+	
 	public synchronized V put(String key, V value, long ttl) {
 		return put(key, value, ttl, true);
 	}
@@ -114,6 +126,10 @@ public class ManagedCache<V extends Object> {
 			put(entry.getKey(), entry.getValue(), defaultTTL, false);
 		}
 		cleanup();
+	}
+	
+	public V remove(Object key) {
+		return remove(key.toString());
 	}
 	
 	public synchronized V remove(String key) {
