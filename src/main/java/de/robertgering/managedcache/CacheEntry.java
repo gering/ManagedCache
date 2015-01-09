@@ -109,9 +109,7 @@ public class CacheEntry<V extends Object> {
 
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 97 * hash + (this.key != null ? this.key.hashCode() : 0);
-        return hash;
+        return key.hashCode();
     }
 
 	@Override
